@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "smart-home-helper"
+version = "0.1.0"
+description = ""
+authors = ["Andrei Kuznetsov <Andrey_kuznetsov@epam.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+openai = "^1.51"
+sounddevice = "*"
+scipy = "*"
+wavio = "*"
+pygame = "*"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
