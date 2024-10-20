@@ -4,10 +4,9 @@ import logging
 
 import numpy as np
 import sounddevice as sd
-from scipy._lib._ccallback import CData
-from scipy.io.wavfile import write
 from pathlib import Path
 import pygame
+from log import log_debug
 
 from audiorecord import AudioRecord
 
@@ -17,6 +16,7 @@ class Audio:
         self.recording_data = []  # Buffer for recording audio
         self.silence_start_time = None  # Time when silence started
 
+    @log_debug
     def record_audio(self) -> AudioRecord:
         logging.info("Recording audio...")
 
@@ -40,33 +40,26 @@ class Audio:
 
 
     @staticmethod
+    @log_debug
     def play_audio(file: Path) -> None:
         logging.info("Playing audio...")
-        # Load the audio file
-        # from playsound import playsound
-        # playsound(file.absolute())
-        # samplerate, data = read(file)
-        # # Play the audio file
-        # sd.play(data)
-        # sd.wait()
-
         pygame.mixer.init()
         pygame.mixer.music.load(file)
         pygame.mixer.music.play()
 
-        logging.info("Audio is playing...")
+        logging.debug("Audio is playing...")
         while pygame.mixer.music.get_busy():
             pygame.time.Clock().tick(10)
-        logging.info("Audio played")
+        logging.debug("Audio played")
 
-    def is_silence(self, data, threshold) -> bool:
+    @staticmethod
+    def is_silence(data, threshold) -> bool:
         # Function to check volume level (silence detector)
         return np.abs(data).mean() < threshold
 
+    @log_debug
     def record_audio_while_speaking(self) -> AudioRecord:
-        import sounddevice as sd
-        import numpy as np
-
+        logging.info("Recording audio while speaking...")
         # Recording parameters
         sample_rate = 44100  # Sampling frequency
         channels = 1  # One channel (mono)
@@ -74,7 +67,7 @@ class Audio:
         max_silence_duration = datetime.timedelta(seconds=1)  # Maximum duration of silence (seconds)
         block_duration = 100 # ms
 
-        def callback(indata, frames, t: CData, status):
+        def callback(indata, frames, t, status):
             if status:
                 logging.info(status)
 
@@ -85,6 +78,7 @@ class Audio:
             if not self.is_silence(indata, silence_threshold):
                 self.silence_start_time = None  # If there is sound, reset the silence timer
             else:
+                logging.debug("Silence detected. Stopping recording.")
                 # If silence and the timer is not started, start it
                 if self.silence_start_time is None:
                     self.silence_start_time = datetime.datetime.now()
@@ -101,5 +95,5 @@ class Audio:
 
         recording_data = np.concatenate(self.recording_data)
 
-        logging.info("Recording finished and saved to output.wav")
+        logging.info("Recording finished")
         return AudioRecord(recording_data, sample_rate)

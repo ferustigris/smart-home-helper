@@ -1,12 +1,12 @@
+import logging
+
 from audiorecord import AudioRecord
 from audio import Audio
 from chatgpt import ChatGpt
-import logging
+from log import log_debug
 
 from processor import Processor
 
-logging.basicConfig(level=logging.DEBUG,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 tools = [
     {
@@ -44,12 +44,14 @@ tools = [
 
 
 class ShutdownProcessor(Processor):
+    @log_debug
     def process_request(self, request: str, ai: ChatGpt):
         logging.info(f"Shutdown the system by request {request}")
         exit(0)
 
 
 class UserRequestPrcoessor(Processor):
+    @log_debug
     def process_request(self, request: str, ai: ChatGpt):
         logging.info(f"User Request processing: {request}")
         response = ai.get_response(request)

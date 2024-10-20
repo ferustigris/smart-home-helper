@@ -1,10 +1,14 @@
 import logging
+
 import os
 from pathlib import Path
 
 from openai import OpenAI
 
+from log import log_debug
+
 OPENAI_API_KEY = "OPENAI_API_KEY"
+
 
 class ChatGpt():
     def __init__(self):
@@ -12,6 +16,7 @@ class ChatGpt():
             api_key=os.getenv(OPENAI_API_KEY)
         )
 
+    @log_debug
     def get_response(self, request: str) -> str:
         completion = self.client.chat.completions.create(
             model="gpt-4o",
@@ -22,6 +27,7 @@ class ChatGpt():
         logging.info(completion.choices[0].message.content)
         return completion.choices[0].message.content
 
+    @log_debug
     def text_to_speech(self, text: str) -> Path:
         speech_file_path = Path(__file__).parent / "speech.mp3"
 
@@ -34,6 +40,7 @@ class ChatGpt():
         response.stream_to_file(speech_file_path)
         return speech_file_path
 
+    @log_debug
     def speech_to_text(self, audio_input: Path) -> str:
         transcription = self.client.audio.transcriptions.create(
             model="whisper-1",
@@ -41,6 +48,7 @@ class ChatGpt():
         )
         return transcription.text
 
+    @log_debug
     def process_request(self, request, tools, processors) -> None:
         logging.info(f"Processing request {request}")
         completion = self.client.chat.completions.create(
@@ -52,7 +60,7 @@ class ChatGpt():
             tools=tools,
         )
         logging.info(f"Response: {completion.choices[0].message}")
-        logging.info(f"Processor: {completion.choices[0].message.tool_calls[0].function.name}")
+        logging.debug(f"Processor: {completion.choices[0].message.tool_calls[0].function.name}")
 
         processor = processors.get(completion.choices[0].message.tool_calls[0].function.name)
         processor.process_request(request, self)
