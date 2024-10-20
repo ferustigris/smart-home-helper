@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 
@@ -12,14 +13,13 @@ class ChatGpt():
         )
 
     def get_response(self, request: str) -> str:
-        global completion
         completion = self.client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "user", "content": request},
             ]
         )
-        print(completion.choices[0].message.content)
+        logging.info(completion.choices[0].message.content)
         return completion.choices[0].message.content
 
     def text_to_speech(self, text: str) -> Path:
@@ -40,3 +40,19 @@ class ChatGpt():
             file=audio_input.absolute()
         )
         return transcription.text
+
+    def process_request(self, request, tools, processors) -> None:
+        logging.info(f"Processing request {request}")
+        completion = self.client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": f"Based on user request Generate one of the following commands: {', '.join(processors.keys())}. In case of unsertancy "},
+                {"role": "user", "content": request},
+            ],
+            tools=tools,
+        )
+        logging.info(f"Response: {completion.choices[0].message}")
+        logging.info(f"Processor: {completion.choices[0].message.tool_calls[0].function.name}")
+
+        processor = processors.get(completion.choices[0].message.tool_calls[0].function.name)
+        processor.process_request(request, self)

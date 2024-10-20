@@ -1,5 +1,6 @@
 # import required libraries
 import datetime
+import logging
 
 import numpy as np
 import sounddevice as sd
@@ -16,8 +17,8 @@ class Audio:
         self.recording_data = []  # Buffer for recording audio
         self.silence_start_time = None  # Time when silence started
 
-    def record_audio(self) -> Path:
-        print("Recording audio...")
+    def record_audio(self) -> AudioRecord:
+        logging.info("Recording audio...")
 
         # Sampling frequency
         freq = 44100
@@ -33,18 +34,14 @@ class Audio:
         # Record audio for the given number of seconds
         sd.wait()
 
-        # This will convert the NumPy array to an audio
-        # file with the given sampling frequency
-        speech_file_path = Path(__file__).parent / "recording0.wav"
-        write(speech_file_path, freq, recording)
-
         # Convert the NumPy array to audio file
-        print("Audio recorded")
-        return speech_file_path
+        logging.info("Audio recorded")
+        return AudioRecord(recording, freq)
 
 
-    def play_audio(self, file: Path) -> None:
-        print("Playing audio...")
+    @staticmethod
+    def play_audio(file: Path) -> None:
+        logging.info("Playing audio...")
         # Load the audio file
         # from playsound import playsound
         # playsound(file.absolute())
@@ -57,29 +54,29 @@ class Audio:
         pygame.mixer.music.load(file)
         pygame.mixer.music.play()
 
-        print("Audio is playing...")
+        logging.info("Audio is playing...")
         while pygame.mixer.music.get_busy():
             pygame.time.Clock().tick(10)
-        print("Audio played")
+        logging.info("Audio played")
 
     def is_silence(self, data, threshold) -> bool:
         # Function to check volume level (silence detector)
         return np.abs(data).mean() < threshold
 
-    def record_audio_while_speaking(self):
+    def record_audio_while_speaking(self) -> AudioRecord:
         import sounddevice as sd
         import numpy as np
 
         # Recording parameters
         sample_rate = 44100  # Sampling frequency
         channels = 1  # One channel (mono)
-        silence_threshold = 50  # Volume threshold for detecting silence
-        max_silence_duration = datetime.timedelta(seconds=2)  # Maximum duration of silence (seconds)
+        silence_threshold = 500  # Volume threshold for detecting silence
+        max_silence_duration = datetime.timedelta(seconds=1)  # Maximum duration of silence (seconds)
         block_duration = 100 # ms
 
         def callback(indata, frames, t: CData, status):
             if status:
-                print(status)
+                logging.info(status)
 
             # Add recorded data to buffer
             self.recording_data.append(indata.copy())
@@ -93,22 +90,16 @@ class Audio:
                     self.silence_start_time = datetime.datetime.now()
                 # If silence continues for too long, stop recording
                 elif datetime.datetime.now() - self.silence_start_time > max_silence_duration:
-                    print("Silence detected. Stopping recording.")
+                    logging.info("Silence detected. Stopping recording.")
                     sd.stop()
 
         # Start recording
-        print("Recording started... Speak!")
+        logging.info("Recording started... Speak!")
         self.silence_start_time = None
         with sd.InputStream(callback=callback, channels=channels, samplerate=sample_rate, blocksize=int(sample_rate * block_duration / 1000), dtype='int16'):
             sd.sleep(10000)  # Wait up to 10 seconds (or less if silence is detected)
 
-        # Save to WAV file
         recording_data = np.concatenate(self.recording_data)
-        # recording_data = np.array(self.recording_data, dtype='int16')
-        # This will convert the NumPy array to an audio
-        # file with the given sampling frequency
-        speech_file_path = Path(__file__).parent / "recording1.wav"
-        write(speech_file_path, sample_rate, recording_data)
 
-        print("Recording finished and saved to output.wav")
-        return speech_file_path
+        logging.info("Recording finished and saved to output.wav")
+        return AudioRecord(recording_data, sample_rate)
